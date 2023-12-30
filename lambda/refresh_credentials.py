@@ -20,8 +20,7 @@ def get_new_creds(credentials):
     url = 'https://id.twitch.tv/oauth2/token?' + encoded_data
     http = urllib3.PoolManager()
     r = http.request('POST', url)
-    print(r.data)
-    response = r.json()
+    response = json.loads(r.data)
     credentials.update({'access_token': response['access_token'], 'refresh_token': response['refresh_token']})
     return credentials
 
