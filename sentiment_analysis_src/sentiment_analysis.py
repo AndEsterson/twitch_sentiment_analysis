@@ -3,7 +3,7 @@ import re
 import json
 import urllib.parse
 from datetime import datetime
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from packages.vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 sia = SentimentIntensityAnalyzer()
 s3_client = boto3.client('s3')
