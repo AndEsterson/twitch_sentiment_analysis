@@ -1,5 +1,6 @@
 # Ignore required package directories
 **/packages/*
+!**/packages/readme.md
 
 # General terraform .gitignore
 **/.terraform/*

@@ -1,0 +1,1 @@
+This folder is kept intentionally empty (other than this file, which allows git to track the folder) as it is meant for the VADER Sentiment Analysis package and its required dependencies, which should be installed separately using `pip3install vaderSentiment -t ./path/to/this/folder`
