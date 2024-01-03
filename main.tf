@@ -81,7 +81,7 @@ data "aws_iam_policy_document" "allow_invoke_lambda" {
 }
 
 resource "aws_iam_role" "iam_for_lambda_scraper" {
-  name               = "lambda_twitch_scraper_role"
+  name               = "twitch_scraper_role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   inline_policy {
     name = "allow_ssm_read"
@@ -106,9 +106,18 @@ resource "aws_iam_role" "iam_for_lambda_credentials" {
   }
 }
 
+resource "aws_iam_role" "iam_for_lambda_sentiment" {
+  name               = "twitch_sentiment_analysis_role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+  inline_policy {
+    name = "allow_twitch_logs_s3"
+    policy = data.aws_iam_policy_document.allow_twitch_logs_s3.json
+  }
+}
+
 data "archive_file" "lambda_credentials" {
   type        = "zip"
-  source_file = "refresh_credentials.py"
+  source_dir = "refresh_credentials_src"
   output_path = "lambda_credentials_payload.zip"
 }
 
@@ -126,7 +135,7 @@ resource "aws_lambda_function" "twitch_refresh_credentials" {
 
 data "archive_file" "lambda_twitch_scraper" {
   type        = "zip"
-  source_file = "twitch_scraper.py"
+  source_dir  = "twitch_scraper_src"
   output_path = "lambda_scraper_payload.zip"
 }
 
@@ -135,8 +144,54 @@ resource "aws_lambda_function" "twitch_log_scraper" {
   function_name = "twitch_log_scraper"
   role          = aws_iam_role.iam_for_lambda_scraper.arn
   handler       = "twitch_scraper.lambda_handler"
-  timeout       = 300
+  timeout       = 900
   architectures  = ["arm64"]
   source_code_hash = data.archive_file.lambda_twitch_scraper.output_base64sha256
   runtime = "python3.8"
+}
+
+data "archive_file" "lambda_twitch_sentiment" {
+  type        = "zip"
+  source_dir = "sentiment_analysis_src"
+  output_path = "lambda_sentiment_payload.zip"
+}
+
+resource "aws_lambda_function" "twitch_sentiment_analysis" {
+  filename      = "lambda_sentiment_payload.zip"
+  function_name = "twitch_sentiment_analysis"
+  role          = aws_iam_role.iam_for_lambda_sentiment.arn
+  handler       = "sentiment_analysis.lambda_handler"
+  timeout       = 60
+  architectures  = ["arm64"]
+  source_code_hash = data.archive_file.lambda_twitch_scraper.output_base64sha256
+  runtime = "python3.8"
+}
+
+resource "aws_s3_bucket" "twitch-scraper-logs" {
+  bucket = "twitch-scraper-logs"
+
+  tags = {
+    Name        = "twitch-scraper-logs"
+    Project     = "twitch_scraper"
+  }
+}
+
+resource "aws_lambda_permission" "twitch-scraper-logs" {
+  statement_id  = "AllowS3Invoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.twitch_sentiment_analysis.function_name
+  principal = "s3.amazonaws.com"
+  source_arn = aws_s3_bucket.twitch-scraper-logs.arn
+}
+
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  bucket = aws_s3_bucket.twitch-scraper-logs.id
+  
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.twitch_sentiment_analysis.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "raw_logs/"
+    filter_suffix       = ".log"
+  }
+
 }
