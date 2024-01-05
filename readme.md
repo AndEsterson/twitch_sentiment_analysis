@@ -9,6 +9,6 @@ The sentiment_analysis.py function requires the VADER sentiment analysis package
 You can now run `terraform apply` to create the infrastructure. the twitch_log_scraper lambda function is the only one that needs to be called externally, this can be done for example by another server, or cloudwatch events, or aws cli (e.g `aws lambda invoke --function-name twitch_log_scraper --payload '{ "channel": "#northernlion" }' out.txt`), depending on use case. This will read 15 minutes of live chat messages, then trigger the upload of both the raw logs and results.
 
 # Notes
-Lambda is in certain ways not the natural way to handle the problem of reading and analysing chat logs, but it's useful for running large and varying amounts of analyses in parallel, which is what this was designed for.
+Lambda is in lots of ways not the natural way to handle the problem of reading and analysing chat logs, but it's useful for running large and varying amounts of analyses in parallel, which is what this was designed for.
 
 Unless you use a secure string to encrypt the parameter store value (which you should do if your app is used for anything else, or you gave any perms other than reading chat), everything here is in the free tier, including a very generous amount of lambda compute, you should be able to get 1000s of hours of logging analysed for free.
