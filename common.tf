@@ -1,10 +1,12 @@
 provider "aws" {
+  region = ""
   default_tags {
     tags = {
       project = "twitch_sentiment_analysis"
     }
   }
 }
+
 
 data "aws_iam_policy_document" "assume_role" {
   statement {
